@@ -15,7 +15,7 @@ The final models are intended to work as risk-estimation tools rather than perfe
 
 Link to Flight dataset: https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024?select=flight_data_2024.csv Weather Data Set: https://www.wunderground.com/history/monthly/us/ga/atlanta/KATL/date/2024-1
 
-Cleaned Data Set: atl_joined_weather_flights_2024 ZIP is our cleaned data (IN FILES) This is after running our orginal 1.31gb fight file through our cleanup code. Unable to upload our uncleaned datasets due to them being to large even being ZIPed
+Cleaned Data Set: atl_joined_weather_flights_2024 ZIP is our cleaned data ([download from the v1.0 release](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/atl_joined_weather_flights_2024.zip)) This is after running our orginal 1.31gb fight file through our cleanup code. Unable to upload our uncleaned datasets due to them being to large even being ZIPed
 
 
 HOW TO RUN OUR Visuals Notebook
@@ -45,8 +45,10 @@ Upload the following files to:
 
 Required files:
 
-atl_joined_weather_flights_2024.zip
-flight_models.zip (needed for the final prediction demo)
+- [atl_joined_weather_flights_2024.zip](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/atl_joined_weather_flights_2024.zip) (12 MB)
+- [flight_models.zip](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/flight_models.zip) (26 MB, needed for the final prediction demo)
+
+Both are attached to the [v1.0 release](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/tag/v1.0).
 Then unzip them in Google Drive if needed so the notebooks can access:
 
 atl_joined_weather_flights_2024.csv
