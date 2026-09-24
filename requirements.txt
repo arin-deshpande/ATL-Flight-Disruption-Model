@@ -1,0 +1,9 @@
+# Python packages used by the notebooks. Google Colab already includes these;
+# install them only if you run the notebooks locally.
+#
+# scikit-learn is pinned because flight_models.pkl was saved with 1.6.1,
+# and pickled models may fail to load or behave differently in other versions.
+scikit-learn==1.6.1
+numpy>=2.0
+pandas>=2.2
+matplotlib>=3.8

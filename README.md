@@ -68,6 +68,8 @@ The project was built in Google Colab and reads its files from Google Drive.
 3. **Open a notebook in Colab** and run the Google Drive mount cell at the top.
 4. **Run the cells in order.**
 
+**Running locally instead of Colab:** install the dependencies with `pip install -r requirements.txt`, then change the `/content/drive/MyDrive/` paths in each notebook to wherever you saved the files, and skip the Google Drive mount cell. scikit-learn is pinned to 1.6.1 because that's the version the saved models were built with.
+
 You only need the raw Kaggle and weather files if you want to re-run `cs210ATL_cleanup.ipynb` from scratch. The other notebooks start from the cleaned CSV.
 
 ## Running the prediction demo
