@@ -1,131 +1,113 @@
-# ATL-Flight-Disruption-Model
+# ATL Flight Disruption Model
 
-This repository shows how to clean, explore, visualize, and model U.S. flight data in order to predict flight delays and cancellations. The project uses supervised machine learning models to estimate whether a flight is likely to have a departure delay, arrival delay, or cancellation based on available flight and airport-related features.
+Predicting departure delays, arrival delays, and cancellations for flights through Atlanta Hartsfield-Jackson (ATL) using 2024 U.S. flight data joined with daily Atlanta weather.
 
+This was a CS210 group project built by me and 2 other teammates. We cleaned and joined the data, explored delay and cancellation patterns, and trained three random forest classifiers that estimate the risk of each type of disruption for a given flight. It ends with a small interactive demo where you enter a flight and a weather forecast and get back a probability for each outcome.
 
-USAGE:
+The models are meant as risk estimators, not exact predictors. Delays depend heavily on things the data doesn't capture (crew schedules, late inbound aircraft, air traffic control), so the goal is to rank flights by risk rather than call every delay correctly.
 
-The cleanup notebook contains code for loading the flight dataset, removing unnecessary columns, handling missing values, preparing categorical variables, and creating target variables for delay and cancellation prediction.
+## Results
 
-The visualization notebook contains code for exploring delay and cancellation patterns across airlines, airports, months, days, and other flight-related features. It includes charts and summary statistics to better understand trends in the data before modeling.
+All three final models are random forests (200 trees, max depth 12, balanced class weights), evaluated on a held-out 20% test set of 136,751 flights. A delay means more than 15 minutes late. Each model uses a tuned decision threshold instead of the default 0.5.
 
-The model notebook contains code for training and testing machine learning models for departure delay, arrival delay, and cancellation prediction. The models use classification approaches and evaluate results using metrics such as precision, recall, F1-score, ROC-AUC, and decision thresholds.
+| Model | ROC-AUC | Precision | Recall | F1 | Threshold |
+|---|---|---|---|---|---|
+| Departure delay | 0.692 | 0.30 | 0.56 | 0.39 | 0.512 |
+| Arrival delay | 0.686 | 0.31 | 0.51 | 0.38 | 0.519 |
+| Cancellation | 0.899 | 0.07 | 0.71 | 0.12 | 0.506 |
 
-The model progression notebook (`ATL_Model_Progression.ipynb`) is a heavily commented walkthrough of how the models improved, built by me and 2 other teammates. It starts from a baseline logistic regression and works up through random forests with and without class balancing, explaining why each change was made (for example, why balancing matters when most flights are not delayed). It also includes a batch of test flights and a Low / Moderate / High risk label for predictions.
+Precision, recall, and F1 are for the positive class (delayed or cancelled).
 
-The final models are intended to work as risk-estimation tools rather than perfect prediction systems. The delay models show moderate performance, while the cancellation model ranks cancellation risk well but struggles with precision because cancellations are rare in the dataset.
+**What the numbers mean:**
 
-Link to Flight dataset: https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024?select=flight_data_2024.csv Weather Data Set: https://www.wunderground.com/history/monthly/us/ga/atlanta/KATL/date/2024-1
+- **Delays** are hard to predict from schedule and daily weather alone. The models catch about half of real delays, and roughly 3 in 10 flights they flag actually end up delayed. That's modest, but well above guessing, since only about 18% of flights in the data are delayed.
+- **Cancellations** are where the model is strongest at ranking risk (ROC-AUC 0.90) and catches 71% of them. Precision is low because only about 1% of flights are cancelled, so even a good model flags many flights that end up flying.
 
-Cleaned Data Set: atl_joined_weather_flights_2024 ZIP is our cleaned data ([download from the v1.0 release](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/atl_joined_weather_flights_2024.zip)) This is after running our orginal 1.31gb fight file through our cleanup code. Unable to upload our uncleaned datasets due to them being to large even being ZIPed
+### How we got there
 
+We started simple and added complexity only when it fixed a specific problem. Every step below comes from `cs210ATL_LearningModels.ipynb`.
 
-HOW TO RUN OUR Visuals Notebook
+| Iteration | Departure delay ROC-AUC | What we learned |
+|---|---|---|
+| 1. Logistic regression | 0.667 | 82% accuracy, but only because it predicts almost nothing as delayed (1% recall) |
+| 2. Decision tree | 0.592 (no depth limit), 0.707 (depth 10) | With no depth limit it memorizes the training data (99% train vs 76% test accuracy) |
+| 3. Random forest, untuned | 0.690 | Better ranking, but still predicts zero delays because of the class imbalance |
+| 4. Random forest, balanced | 0.692 | Balanced class weights raise delay recall from 0% to 62% |
+| 5. Final model, tuned threshold | 0.692 | A tuned threshold trades a little recall for better precision and accuracy |
 
-Make sure you install our dataset atl_joined_weather_flights_2024 and unZIP the file and place it into your Google Drive dierectory : /content/drive/MyDrive/ Also make sure you install our pickeled final model in (flight_models.zip) and also place it in Google Drive Run our Mount Google Drive code, and you should be able to run all our graphs
+The main lesson: accuracy was misleading here. A model that says "never delayed" is 82% accurate and useless, so we judged every model on recall, F1, and ROC-AUC instead.
 
+## Notebooks
 
-HOW TO RUN OUR MODELS
+| Notebook | What it does |
+|---|---|
+| `cs210ATL_cleanup.ipynb` | Filters the 1.31 GB national flight file down to ATL flights, cleans it, joins daily weather, creates the delay, cancellation, and weather-severity columns, and writes the final CSV |
+| `ATL_Flight_Weather_Visuals.ipynb` | Charts delay patterns by airline, departure hour, and weather severity (including how much longer delays run in severe weather), plus confusion matrices for the three final models |
+| `cs210ATL_LearningModels.ipynb` | Trains and compares each model iteration, builds the three final models, saves them, and runs the prediction demo |
+| `ATL_Model_Progression.ipynb` | A heavily commented walkthrough of the modeling work, from a baseline logistic regression through random forests with and without class balancing, explaining why each change was made. Also includes a batch of test flights and a Low / Moderate / High risk label |
 
-Make sure you install our dataset atl_joined_weather_flights_2024 and unZIP the file and place it into your Google Drive dierectory : /content/drive/MyDrive/ Run our Mount Google Drive code, then run our Training Model Data code section, after you can either go through our models and train them seperately if you'd like our go all the way to our final model and train it.
+## Features
 
+The final models use nine inputs:
 
-HOW TO RUN OUR UI At the end of learningModels NOTEBOOK
+- **Flight:** month, airline, origin airport, destination airport, scheduled departure hour, distance
+- **Weather:** total precipitation (inches), average wind speed (mph), and a severe-weather flag (set when precipitation is over 1.25 in or average wind is at least 15 mph)
 
-Make sure you have our pickeled final model in (flight_models.zip) installed and also place it in Google Drive RUN the Model User Interface code, then you should be able to run all the Example predictions
+Airline and airports are one-hot encoded; the rest are used as-is.
 
-At the end of the Notebook there is "RUN this code box for User Inputs (UI)" run it and you can input your own flight and weather data to predict The flights delays/cancellations
+## Setup
 
-Setup Instructions more indepth
-This project was built in Google Colab.
+The project was built in Google Colab and reads its files from Google Drive.
 
+1. **Download the data and models** from the [v1.0 release](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/tag/v1.0):
+   - [`atl_joined_weather_flights_2024.zip`](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/atl_joined_weather_flights_2024.zip) (12 MB): the cleaned, joined dataset
+   - [`flight_models.zip`](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/flight_models.zip) (26 MB): the trained models, needed for the prediction demo and the confusion-matrix charts
+2. **Unzip both** and upload the files to the top level of your Google Drive (`/content/drive/MyDrive/`):
+   - `atl_joined_weather_flights_2024.csv`
+   - `flight_models.pkl`
+3. **Open a notebook in Colab** and run the Google Drive mount cell at the top.
+4. **Run the cells in order.**
 
-Step 1: Upload files to Google Drive
-Upload the following files to:
+You only need the raw Kaggle and weather files if you want to re-run `cs210ATL_cleanup.ipynb` from scratch. The other notebooks start from the cleaned CSV.
 
-/content/drive/MyDrive/
+## Running the prediction demo
 
-Required files:
+At the end of `cs210ATL_LearningModels.ipynb`:
 
-- [atl_joined_weather_flights_2024.zip](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/atl_joined_weather_flights_2024.zip) (12 MB)
-- [flight_models.zip](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/download/v1.0/flight_models.zip) (26 MB, needed for the final prediction demo)
+1. Run the **Model User Interface** cell to load `flight_models.pkl` and define the prediction helpers. You can skip the training cells.
+2. Run the three **Examples of Predictions** cells (clear, moderate, and severe weather), or
+3. Run the **User Inputs (UI)** cell and enter your own flight: month, airline code, origin, destination, scheduled departure time (HHMM), distance, forecast average wind speed, and forecast precipitation.
 
-Both are attached to the [v1.0 release](https://github.com/arin-deshpande/ATL-Flight-Disruption-Model/releases/tag/v1.0).
-Then unzip them in Google Drive if needed so the notebooks can access:
+Example output for a June Delta flight from ATL to LAX at 3 PM, with 5 mph wind and 0.5 in of rain:
 
-atl_joined_weather_flights_2024.csv
-flight_models.pkl
+```
+Departure Delay Probability: 57.36% (Moderate Risk)
+Arrival Delay Probability:   55.81% (Moderate Risk)
+Cancellation Probability:    35.25% (Low Risk)
 
+Predicted Outcomes
+Departure Delay: Yes
+Arrival Delay:   Yes
+Cancellation:    No
+```
 
-Step 2: Mount Google Drive
-At the start of each notebook, run the Google Drive mount cell so Colab can access the files stored in Drive.
+Use valid airline and airport codes (for example `DL`, `AA`, `WN`; `ATL`, `LAX`, `EWR`). A code the models never saw in training won't cause an error, but the models treat it as unknown, so the prediction is less reliable.
 
-How to Run the Notebooks
-Visuals Notebook
-Notebook: ATL_Flight_Weather_Visuals.ipynb
+## Data sources
 
-This notebook uses the cleaned joined dataset to:
+- **Flights:** [Flight Data 2024](https://www.kaggle.com/datasets/hrishitpatil/flight-data-2024) on Kaggle (U.S. Bureau of Transportation Statistics on-time data)
+- **Weather:** [Weather Underground daily history for ATL](https://www.wunderground.com/history/monthly/us/ga/atlanta/KATL/date/2024-1), January through December 2024
 
-explore delay and cancellation patterns
-compare airlines
-compare weather severity levels
-analyze delay rates by departure hour
-generate the graphs used in the report
-To run it:
+The raw flight file is 1.31 GB and too large to include here, even zipped. The cleaned, joined dataset is in the release.
 
-make sure atl_joined_weather_flights_2024.csv is in Google Drive and flight_models.pkl
-run the mount Google Drive cell
-run the notebook cells in order
-Models Notebook
-Notebook: cs210ATL_Learning_Models.ipynb
+## Limitations
 
-This notebook:
+- **Weather is daily, not hourly.** A 7 AM flight and a 9 PM flight on the same day get the same weather, so predictions are same-day risk estimates, not forecasts for a specific departure time.
+- **Only ATL weather is used.** Weather at the other airport isn't included, even though a storm at the destination can delay a flight just as easily.
+- **No knock-on effects.** The models don't know about late inbound aircraft, crew timing, or air traffic control delays, which cause many real delays.
+- **Cancellations are rare** (about 1% of flights), so the cancellation model is better at ranking risk than at saying yes or no.
+- **One year of data.** Everything is trained and tested on 2024, so the results may not carry over to other years.
 
-loads the cleaned merged dataset
-trains several machine learning model attempts
-compares model outputs
-builds final models for:
-departure delay
-arrival delay
-cancellation
-includes a small prediction demo / user interface at the end
-To run it:
+## License
 
-make sure atl_joined_weather_flights_2024.csv is in Google Drive
-run the mount Google Drive cell
-run the model training cells in order
-If you want to use the saved final models instead of retraining, place:
-
-flight_models.pkl
-in Google Drive and run the model-loading / UI section.
-
-How to Run the Final Prediction Demo
-At the end of the models notebook, there is a user input section.
-
-To use it:
-
-make sure flight_models.pkl is in Google Drive
-run the code cell that loads the pickled models
-run the prediction helper function cells
-run the example prediction cells or the user input cell
-The demo allows you to enter:
-
-month
-airline code
-origin airport
-destination airport
-scheduled departure time
-distance
-forecast average wind speed
-forecast precipitation total
-The model then returns:
-
-departure delay probability
-arrival delay probability
-cancellation probability
-and the threshold-based yes/no prediction for each one.
-
-Notes
-Valid airline and airport codes matter for the prediction demo.
-The weather data is daily, not hourly, so the predictions should be interpreted as same-day disruption risk estimates rather than exact minute-by-minute forecasts.
-The cancellation model ranks cancellation risk better than it classifies exact cancellations, since cancellations are rare in the dataset.
+MIT
